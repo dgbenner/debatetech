@@ -59,70 +59,105 @@ export function AnnotationView({
   const { segments, unmatched } = buildSegments(input, annotations);
 
   return (
-    <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-      <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-neutral-500">
-        Annotations
-      </h2>
+    <section className="border border-ink-line bg-paper p-6">
+      <div className="mb-4 flex items-baseline justify-between">
+        <span className="label">You — Original</span>
+        <span className="label">{annotations.length} Notes</span>
+      </div>
 
-      <p className="mb-4 whitespace-pre-wrap text-base leading-relaxed">
+      <p className="mb-6 whitespace-pre-wrap font-display text-lg leading-relaxed text-ink-1">
         {segments.map((seg, i) => {
           if (seg.kind === "plain") return <span key={i}>{seg.text}</span>;
           const isWeakness = seg.annotation.type === "weakness";
+          const isActive = active === seg.index;
           return (
-            <button
+            <span
               key={i}
-              type="button"
-              onClick={() => setActive(active === seg.index ? null : seg.index)}
-              className={`relative cursor-pointer rounded px-0.5 transition-colors ${
+              role="button"
+              tabIndex={0}
+              onClick={() => setActive(isActive ? null : seg.index)}
+              onMouseEnter={() => setActive(seg.index)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setActive(isActive ? null : seg.index);
+                }
+              }}
+              className={`cursor-pointer transition-colors ${
                 isWeakness
-                  ? "bg-rose-100 hover:bg-rose-200 dark:bg-rose-950/50 dark:hover:bg-rose-950"
-                  : "bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/50 dark:hover:bg-emerald-950"
-              } ${active === seg.index ? "ring-2 ring-neutral-400" : ""}`}
+                  ? "border-b-2 border-accent-bad"
+                  : "border-b-2 border-accent-good"
+              } ${
+                isActive
+                  ? isWeakness
+                    ? "bg-accent-bad-soft"
+                    : "bg-accent-good-soft"
+                  : ""
+              }`}
             >
               {seg.text}
-            </button>
+              <sup
+                className={`ml-0.5 font-mono text-[9px] font-semibold ${
+                  isWeakness ? "text-accent-bad" : "text-accent-good"
+                }`}
+              >
+                {seg.index + 1}
+              </sup>
+            </span>
           );
         })}
       </p>
 
-      <div className="space-y-2">
+      <ol className="space-y-2">
         {annotations.map((a, i) => {
           const isWeakness = a.type === "weakness";
           const isActive = active === i;
           return (
-            <div
+            <li
               key={i}
               onClick={() => setActive(isActive ? null : i)}
-              className={`cursor-pointer rounded-md border p-3 text-sm transition-all ${
+              onMouseEnter={() => setActive(i)}
+              className={`grid cursor-pointer grid-cols-[28px_1fr] gap-3 border p-3 transition-colors ${
                 isActive
-                  ? "border-neutral-400 shadow-sm"
-                  : "border-neutral-200 dark:border-neutral-800"
+                  ? isWeakness
+                    ? "border-accent-bad bg-ink-hover"
+                    : "border-accent-good bg-ink-hover"
+                  : "border-ink-line"
               }`}
             >
-              <div className="mb-1 flex items-center gap-2">
-                <span
-                  className={`rounded px-1.5 py-0.5 text-xs font-medium uppercase ${
-                    isWeakness
-                      ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300"
-                      : "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+              <div
+                className={`font-mono text-[11px] font-semibold tabular-nums ${
+                  isWeakness ? "text-accent-bad" : "text-accent-good"
+                }`}
+              >
+                {String(i + 1).padStart(2, "0")}
+              </div>
+              <div>
+                <div
+                  className={`mb-1 font-mono text-[9px] uppercase tracking-[0.1em] ${
+                    isWeakness ? "text-accent-bad" : "text-accent-good"
                   }`}
                 >
                   {a.type}
-                </span>
-                <span className="truncate text-neutral-500">&ldquo;{a.text_span}&rdquo;</span>
+                </div>
+                <div className="text-[13px] leading-relaxed text-ink-1">
+                  {a.explanation}
+                </div>
+                <div className="mt-2 text-[12px] leading-relaxed text-ink-2">
+                  <span className="mr-1.5 font-mono text-[9px] uppercase tracking-[0.1em] text-ink-3">
+                    Fix
+                  </span>
+                  {a.suggestion}
+                </div>
               </div>
-              <p className="text-neutral-700 dark:text-neutral-300">{a.explanation}</p>
-              <p className="mt-1 text-neutral-600 dark:text-neutral-400">
-                <span className="font-medium">Suggestion:</span> {a.suggestion}
-              </p>
-            </div>
+            </li>
           );
         })}
-      </div>
+      </ol>
 
       {unmatched.length > 0 && (
-        <p className="mt-3 text-xs text-neutral-500">
-          {unmatched.length} annotation{unmatched.length === 1 ? "" : "s"} could not be aligned to the input text.
+        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.06em] text-ink-3">
+          {unmatched.length} note{unmatched.length === 1 ? "" : "s"} could not be aligned to the input.
         </p>
       )}
     </section>

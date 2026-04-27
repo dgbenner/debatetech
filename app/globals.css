@@ -1,26 +1,47 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Editorial palette — warm cream paper, dark ink, muted accents */
+  --paper: oklch(0.97 0.012 85);
+  --paper-2: oklch(0.94 0.014 85);
+  --ink-1: oklch(0.22 0.013 60);
+  --ink-2: oklch(0.45 0.012 60);
+  --ink-3: oklch(0.62 0.010 60);
+  --ink-line: oklch(0.85 0.010 80);
+  --ink-hover: oklch(0.93 0.012 80);
+  --accent-good: oklch(0.50 0.10 160);
+  --accent-good-soft: oklch(0.92 0.04 160);
+  --accent-bad: oklch(0.52 0.14 25);
+  --accent-bad-soft: oklch(0.93 0.05 25);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-ink-1: var(--ink-1);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-ink-line: var(--ink-line);
+  --color-ink-hover: var(--ink-hover);
+  --color-accent-good: var(--accent-good);
+  --color-accent-good-soft: var(--accent-good-soft);
+  --color-accent-bad: var(--accent-bad);
+  --color-accent-bad-soft: var(--accent-bad-soft);
+  --font-display: var(--font-display);
+  --font-mono: var(--font-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink-1);
+  font-family: var(--font-display), Georgia, serif;
+  font-feature-settings: "ss01", "ss02";
+}
+
+.label {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
 }

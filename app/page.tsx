@@ -40,73 +40,86 @@ export default function Home() {
     }
   }
 
+  const wordCount = input.split(/\s+/).filter(Boolean).length;
+
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10 md:py-16">
-      <header className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Debate Lab</h1>
-        <p className="mt-2 text-neutral-600 dark:text-neutral-400">
-          Submit an argument. Get a counter, a critique, and three sharper rewrites.
-        </p>
+    <main className="mx-auto max-w-3xl px-6 py-12 md:py-16">
+      <header className="mb-10 flex items-baseline justify-between border-b border-ink-line pb-4">
+        <div>
+          <h1 className="font-display text-4xl font-medium tracking-tight text-ink-1">
+            Debate Tech
+          </h1>
+          <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3">
+            Dialectic Spread · Vol. 1 № 27
+          </p>
+        </div>
+        <span className="label">New ⌘N</span>
       </header>
 
-      <div className="space-y-3">
+      <section className="border border-ink-line bg-paper p-6">
+        <div className="mb-3 flex items-baseline justify-between">
+          <span className="label">Argument</span>
+          <span className="label">{wordCount} words</span>
+        </div>
+
         <textarea
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Enter your argument..."
+          placeholder="Write your argument…"
           rows={5}
-          className="w-full resize-y rounded-lg border border-neutral-300 bg-white p-3 text-base focus:border-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:border-neutral-700 dark:bg-neutral-900 dark:focus:ring-neutral-800"
+          className="w-full resize-y bg-transparent font-display text-lg leading-relaxed text-ink-1 placeholder:text-ink-3 focus:outline-none"
           disabled={loading}
         />
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div
-            role="radiogroup"
-            aria-label="AI stance"
-            className="inline-flex rounded-md border border-neutral-300 dark:border-neutral-700"
-          >
-            {(["against", "for"] as Stance[]).map((s) => (
-              <button
-                key={s}
-                role="radio"
-                aria-checked={stance === s}
-                onClick={() => setStance(s)}
-                disabled={loading}
-                className={`px-3 py-1.5 text-sm capitalize first:rounded-l-md last:rounded-r-md ${
-                  stance === s
-                    ? "bg-neutral-900 text-white dark:bg-white dark:text-neutral-900"
-                    : "bg-white hover:bg-neutral-50 dark:bg-neutral-900 dark:hover:bg-neutral-800"
-                }`}
-              >
-                {s}
-              </button>
-            ))}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ink-line pt-4">
+          <div className="flex items-center gap-3">
+            <span className="label">AI argues</span>
+            <div role="radiogroup" aria-label="AI stance" className="inline-flex border border-ink-line">
+              {(["against", "for"] as Stance[]).map((s) => (
+                <button
+                  key={s}
+                  role="radio"
+                  aria-checked={stance === s}
+                  onClick={() => setStance(s)}
+                  disabled={loading}
+                  className={`px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.08em] transition-colors ${
+                    stance === s
+                      ? "bg-ink-1 text-paper"
+                      : "text-ink-2 hover:bg-ink-hover"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
 
           <button
             type="button"
             onClick={handleSubmit}
             disabled={!input.trim() || loading}
-            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+            className="bg-ink-1 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.1em] text-paper transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {loading ? "Analyzing..." : "Analyze & Debate"}
+            {loading ? "Analyzing…" : "Analyze →"}
           </button>
         </div>
-      </div>
+      </section>
 
       {error && (
-        <div className="mt-6 rounded-md border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-300">
+        <div className="mt-6 border border-accent-bad bg-accent-bad-soft p-4 font-display text-sm text-ink-1">
           {error}
         </div>
       )}
 
       {data && (
-        <div className="mt-8 space-y-4">
-          <section className="rounded-lg border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-            <h2 className="mb-2 text-sm font-medium uppercase tracking-wide text-neutral-500">
-              AI Response ({stance})
-            </h2>
-            <p className="text-base leading-relaxed">{data.response}</p>
+        <div className="mt-6 space-y-4">
+          <section className="border border-ink-line bg-paper p-6">
+            <div className="mb-3 flex items-baseline justify-between">
+              <span className="label">Claude — Counter ({stance})</span>
+            </div>
+            <p className="font-display text-lg leading-relaxed text-ink-1">
+              {data.response}
+            </p>
           </section>
 
           <ScoreCard score={data.score} />
