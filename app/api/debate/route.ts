@@ -6,7 +6,7 @@ const client = new Anthropic();
 
 const SYSTEM_PROMPT = `You are a debate engine that critiques arguments with precision and crafts effective counter-arguments.
 
-For each user argument, you produce four things via the \`debate_analysis\` tool:
+For each user argument, you produce seven things via the \`debate_analysis\` tool:
 
 1. A response: a substantive counter-argument (or supporting argument when the user requests "for"). 2–4 sentences. Direct, no preamble.
 
@@ -19,9 +19,15 @@ For each user argument, you produce four things via the \`debate_analysis\` tool
 
 3. Annotations: 2–6 spans pulled from the user's input. Each text_span MUST be an exact substring of the input — no paraphrase, no edits, no added quotes. Mark each as "strength" or "weakness", explain why, and offer a concrete improvement.
 
-4. Three alternative versions of the user's argument, each using a different rhetorical strategy (e.g., data-driven, ethical, emotional, comparative, historical). Include the strategy name, why it works, and when to use it.
+4. Fallacies: 0–4 logical fallacies present in the argument. For each: the name (e.g., "Ad Hominem", "Hasty Generalization"), an exact span from the input that exhibits it, and a one-sentence note. If none are present, return an empty array — do not invent.
 
-Be honest. Score generously only when warranted. Annotate weaknesses without softening.`;
+5. Biases: 0–3 cognitive biases the argument leans on (e.g., "Confirmation Bias", "Survivorship Bias"). For each: name and a one-sentence note. If none, empty array.
+
+6. Missed points: 0–4 stronger arguments the user could have made for their position but didn't. Each is a single sentence describing the missed angle. Aim for arguments that are obviously stronger than what the user wrote.
+
+7. Three alternative versions of the user's argument, each using a different rhetorical strategy (e.g., data-driven, ethical, emotional, comparative, historical). Include the strategy name, why it works, and when to use it.
+
+Be honest. Score generously only when warranted. Annotate weaknesses without softening. Never invent fallacies or biases that aren't really there.`;
 
 const tool: Anthropic.Tool = {
   name: "debate_analysis",
@@ -77,8 +83,55 @@ const tool: Anthropic.Tool = {
           required: ["text", "strategy", "reasoning", "when_to_use"],
         },
       },
+      fallacies: {
+        type: "array",
+        minItems: 0,
+        maxItems: 4,
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Common name of the fallacy." },
+            span: {
+              type: "string",
+              description: "Exact substring of the input that exhibits the fallacy.",
+            },
+            note: { type: "string", description: "One-sentence explanation." },
+          },
+          required: ["name", "span", "note"],
+        },
+      },
+      biases: {
+        type: "array",
+        minItems: 0,
+        maxItems: 3,
+        items: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Common name of the cognitive bias." },
+            note: { type: "string", description: "One-sentence explanation." },
+          },
+          required: ["name", "note"],
+        },
+      },
+      missed_points: {
+        type: "array",
+        minItems: 0,
+        maxItems: 4,
+        items: {
+          type: "string",
+          description: "A single sentence describing a stronger argument the user did not make.",
+        },
+      },
     },
-    required: ["response", "score", "annotations", "alternatives"],
+    required: [
+      "response",
+      "score",
+      "annotations",
+      "alternatives",
+      "fallacies",
+      "biases",
+      "missed_points",
+    ],
   },
 };
 
@@ -100,7 +153,7 @@ export async function POST(req: Request) {
 
     const message = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 4096,
+      max_tokens: 6144,
       system: [
         {
           type: "text",

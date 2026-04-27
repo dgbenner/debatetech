@@ -51,19 +51,26 @@ function buildSegments(input: string, annotations: Annotation[]): {
 export function AnnotationView({
   input,
   annotations,
+  embedded = false,
 }: {
   input: string;
   annotations: Annotation[];
+  embedded?: boolean;
 }) {
   const [active, setActive] = useState<number | null>(null);
   const { segments, unmatched } = buildSegments(input, annotations);
 
+  const Wrapper = embedded ? "div" : "section";
+  const wrapperClass = embedded ? "p-6" : "border border-ink-line bg-paper p-6";
+
   return (
-    <section className="border border-ink-line bg-paper p-6">
-      <div className="mb-4 flex items-baseline justify-between">
-        <span className="label">You — Original</span>
-        <span className="label">{annotations.length} Notes</span>
-      </div>
+    <Wrapper className={wrapperClass}>
+      {!embedded && (
+        <div className="mb-4 flex items-baseline justify-between">
+          <span className="label">You — Original</span>
+          <span className="label">{annotations.length} Notes</span>
+        </div>
+      )}
 
       <p className="mb-6 whitespace-pre-wrap font-display text-lg leading-relaxed text-ink-1">
         {segments.map((seg, i) => {
@@ -160,6 +167,6 @@ export function AnnotationView({
           {unmatched.length} note{unmatched.length === 1 ? "" : "s"} could not be aligned to the input.
         </p>
       )}
-    </section>
+    </Wrapper>
   );
 }

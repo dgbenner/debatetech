@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { ScoreCard } from "./components/ScoreCard";
-import { AnnotationView } from "./components/AnnotationView";
-import { AlternativesView } from "./components/AlternativesView";
+import { CoachPanel } from "./components/CoachPanel";
 import type { DebateResult, Stance } from "./types";
 
 export default function Home() {
@@ -123,10 +122,10 @@ export default function Home() {
           </section>
 
           <ScoreCard score={data.score} />
-          <AnnotationView input={submittedInput} annotations={data.annotations} />
-          <AlternativesView
-            alternatives={data.alternatives}
-            onUseInstead={(text) => {
+          <CoachPanel
+            input={submittedInput}
+            result={data}
+            onUseInstead={(text: string) => {
               setInput(text);
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}

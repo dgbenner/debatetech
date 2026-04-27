@@ -6,18 +6,25 @@ import type { Alternative } from "../types";
 export function AlternativesView({
   alternatives,
   onUseInstead,
+  embedded = false,
 }: {
   alternatives: Alternative[];
   onUseInstead: (text: string) => void;
+  embedded?: boolean;
 }) {
   const [active, setActive] = useState(0);
 
+  const Wrapper = embedded ? "div" : "section";
+  const wrapperClass = embedded ? "p-6" : "border border-ink-line bg-paper p-6";
+
   return (
-    <section className="border border-ink-line bg-paper p-6">
-      <div className="mb-4 flex items-baseline justify-between">
-        <span className="label">Rewrites</span>
-        <span className="label">{alternatives.length} Strategies</span>
-      </div>
+    <Wrapper className={wrapperClass}>
+      {!embedded && (
+        <div className="mb-4 flex items-baseline justify-between">
+          <span className="label">Rewrites</span>
+          <span className="label">{alternatives.length} Strategies</span>
+        </div>
+      )}
 
       <div className="mb-5 flex flex-wrap gap-2">
         {alternatives.map((alt, i) => (
@@ -64,6 +71,6 @@ export function AlternativesView({
           </button>
         </div>
       )}
-    </section>
+    </Wrapper>
   );
 }

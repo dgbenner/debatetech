@@ -22,9 +22,23 @@ export type Alternative = {
   when_to_use: string;
 };
 
+export type Fallacy = {
+  name: string;
+  span: string;
+  note: string;
+};
+
+export type Bias = {
+  name: string;
+  note: string;
+};
+
 export type DebateResult = {
   response: string;
   score: Score;
   annotations: Annotation[];
   alternatives: Alternative[];
+  fallacies: Fallacy[];
+  biases: Bias[];
+  missed_points: string[];
 };
