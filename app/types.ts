@@ -33,6 +33,7 @@ export type Bias = {
   note: string;
 };
 
+// Single-turn analysis result (what the coach surfaces for one user turn)
 export type DebateResult = {
   response: string;
   score: Score;
@@ -41,4 +42,39 @@ export type DebateResult = {
   fallacies: Fallacy[];
   biases: Bias[];
   missed_points: string[];
+};
+
+// Multi-round match types
+export type Topic = {
+  category: string;
+  text: string;
+};
+
+export type Turn = {
+  id: string;
+  side: "user" | "claude";
+  round: number;
+  text: string;
+  score: Score;
+  annotations: Annotation[];
+  fallacies: Fallacy[];
+  biases: Bias[];
+  missed_points: string[];
+  alternatives: Alternative[];
+};
+
+// What the API returns when a user submits a new turn
+export type TurnResponse = {
+  user_analysis: {
+    score: Score;
+    annotations: Annotation[];
+    fallacies: Fallacy[];
+    biases: Bias[];
+    missed_points: string[];
+    alternatives: Alternative[];
+  };
+  claude_response: {
+    text: string;
+    score: Score;
+  };
 };

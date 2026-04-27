@@ -1,155 +1,195 @@
 import Anthropic from "@anthropic-ai/sdk";
+import type { Turn } from "../../types";
 
 export const runtime = "nodejs";
 
 const client = new Anthropic();
 
-const SYSTEM_PROMPT = `You are a debate engine that critiques arguments with precision and crafts effective counter-arguments.
+const SYSTEM_PROMPT = `You are the engine behind Debate Tech — a sparring partner and a coach in the user's corner.
 
-For each user argument, you produce seven things via the \`debate_analysis\` tool:
+Each round, the user submits an argument. You do two things at once:
 
-1. A response: a substantive counter-argument (or supporting argument when the user requests "for"). 2–4 sentences. Direct, no preamble.
+A) COACH the user's argument. You score it, annotate spans, name any logical fallacies and cognitive biases, list stronger arguments they could have made (missed_points), and write three alternative versions in different rhetorical strategies.
 
-2. A score across four dimensions, each 0–10:
-   - clarity: is the claim well-stated?
-   - logic: does the reasoning hold?
-   - evidence: are claims grounded?
-   - persuasiveness: would it move a reasonable opponent?
-   Plus a one-sentence summary.
+B) COUNTER the user. Argue the opposing side of the topic. 2–4 sentences. Engage their strongest point — don't dodge it. Concede genuine ground when warranted, then redraw the line of disagreement.
 
-3. Annotations: 2–6 spans pulled from the user's input. Each text_span MUST be an exact substring of the input — no paraphrase, no edits, no added quotes. Mark each as "strength" or "weakness", explain why, and offer a concrete improvement.
+Both outputs go through the \`turn_response\` tool.
 
-4. Fallacies: 0–4 logical fallacies present in the argument. For each: the name (e.g., "Ad Hominem", "Hasty Generalization"), an exact span from the input that exhibits it, and a one-sentence note. If none are present, return an empty array — do not invent.
+Coaching rules:
+- Score 0–10 on clarity, logic, evidence, persuasiveness. Plus a one-sentence summary.
+- Annotations: 2–6 spans. text_span MUST be an exact substring of the user's most recent turn — character-for-character, no edits.
+- Fallacies: 0–4. Include name + exact span + one-sentence note. Do not invent fallacies that aren't there.
+- Biases: 0–3. Name + note. Do not invent.
+- Missed points: 0–4 single-sentence stronger arguments the user could have made for their position.
+- Alternatives: exactly 3 rewrites of the user's argument, each in a different strategy (data-driven, ethical, comparative, emotional, historical, concession-pivot, etc.). Include strategy name, reasoning, when_to_use.
 
-5. Biases: 0–3 cognitive biases the argument leans on (e.g., "Confirmation Bias", "Survivorship Bias"). For each: name and a one-sentence note. If none, empty array.
+Counter rules:
+- You are arguing the side OPPOSITE the user. Stay in role.
+- Read the full transcript when present — build on prior exchanges, don't restart.
+- Be fair: the strongest version of your counter concedes the user's real points.
+- Score your own counter on the same four dimensions, with a summary.
 
-6. Missed points: 0–4 stronger arguments the user could have made for their position but didn't. Each is a single sentence describing the missed angle. Aim for arguments that are obviously stronger than what the user wrote.
-
-7. Three alternative versions of the user's argument, each using a different rhetorical strategy (e.g., data-driven, ethical, emotional, comparative, historical). Include the strategy name, why it works, and when to use it.
-
-Be honest. Score generously only when warranted. Annotate weaknesses without softening. Never invent fallacies or biases that aren't really there.`;
+Be honest. Score generously only when warranted. Don't soften critique.`;
 
 const tool: Anthropic.Tool = {
-  name: "debate_analysis",
-  description: "Return the full debate analysis: response, score, annotations, and alternatives.",
+  name: "turn_response",
+  description: "Coach the user's most recent turn AND produce Claude's counter for the next turn.",
   input_schema: {
     type: "object",
     properties: {
-      response: {
-        type: "string",
-        description: "The AI's counter-argument (or supporting argument). 2–4 sentences.",
-      },
-      score: {
+      user_analysis: {
         type: "object",
         properties: {
-          clarity: { type: "integer", minimum: 0, maximum: 10 },
-          logic: { type: "integer", minimum: 0, maximum: 10 },
-          evidence: { type: "integer", minimum: 0, maximum: 10 },
-          persuasiveness: { type: "integer", minimum: 0, maximum: 10 },
-          summary: { type: "string", description: "One-sentence justification of the scores." },
-        },
-        required: ["clarity", "logic", "evidence", "persuasiveness", "summary"],
-      },
-      annotations: {
-        type: "array",
-        minItems: 2,
-        maxItems: 6,
-        items: {
-          type: "object",
-          properties: {
-            text_span: {
-              type: "string",
-              description: "Exact substring of the user's input. Must match character-for-character.",
+          score: {
+            type: "object",
+            properties: {
+              clarity: { type: "integer", minimum: 0, maximum: 10 },
+              logic: { type: "integer", minimum: 0, maximum: 10 },
+              evidence: { type: "integer", minimum: 0, maximum: 10 },
+              persuasiveness: { type: "integer", minimum: 0, maximum: 10 },
+              summary: { type: "string" },
             },
-            type: { type: "string", enum: ["strength", "weakness"] },
-            explanation: { type: "string" },
-            suggestion: { type: "string", description: "Concrete improvement." },
+            required: ["clarity", "logic", "evidence", "persuasiveness", "summary"],
           },
-          required: ["text_span", "type", "explanation", "suggestion"],
-        },
-      },
-      alternatives: {
-        type: "array",
-        minItems: 3,
-        maxItems: 3,
-        items: {
-          type: "object",
-          properties: {
-            text: { type: "string", description: "The rewritten argument." },
-            strategy: { type: "string", description: "Strategy name, e.g. 'data-driven'." },
-            reasoning: { type: "string", description: "Why this strategy strengthens the argument." },
-            when_to_use: { type: "string", description: "Context where this version lands best." },
-          },
-          required: ["text", "strategy", "reasoning", "when_to_use"],
-        },
-      },
-      fallacies: {
-        type: "array",
-        minItems: 0,
-        maxItems: 4,
-        items: {
-          type: "object",
-          properties: {
-            name: { type: "string", description: "Common name of the fallacy." },
-            span: {
-              type: "string",
-              description: "Exact substring of the input that exhibits the fallacy.",
+          annotations: {
+            type: "array",
+            minItems: 2,
+            maxItems: 6,
+            items: {
+              type: "object",
+              properties: {
+                text_span: { type: "string", description: "Exact substring of user's turn." },
+                type: { type: "string", enum: ["strength", "weakness"] },
+                explanation: { type: "string" },
+                suggestion: { type: "string" },
+              },
+              required: ["text_span", "type", "explanation", "suggestion"],
             },
-            note: { type: "string", description: "One-sentence explanation." },
           },
-          required: ["name", "span", "note"],
-        },
-      },
-      biases: {
-        type: "array",
-        minItems: 0,
-        maxItems: 3,
-        items: {
-          type: "object",
-          properties: {
-            name: { type: "string", description: "Common name of the cognitive bias." },
-            note: { type: "string", description: "One-sentence explanation." },
+          fallacies: {
+            type: "array",
+            minItems: 0,
+            maxItems: 4,
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                span: { type: "string", description: "Exact substring." },
+                note: { type: "string" },
+              },
+              required: ["name", "span", "note"],
+            },
           },
-          required: ["name", "note"],
+          biases: {
+            type: "array",
+            minItems: 0,
+            maxItems: 3,
+            items: {
+              type: "object",
+              properties: {
+                name: { type: "string" },
+                note: { type: "string" },
+              },
+              required: ["name", "note"],
+            },
+          },
+          missed_points: {
+            type: "array",
+            minItems: 0,
+            maxItems: 4,
+            items: { type: "string" },
+          },
+          alternatives: {
+            type: "array",
+            minItems: 3,
+            maxItems: 3,
+            items: {
+              type: "object",
+              properties: {
+                text: { type: "string" },
+                strategy: { type: "string" },
+                reasoning: { type: "string" },
+                when_to_use: { type: "string" },
+              },
+              required: ["text", "strategy", "reasoning", "when_to_use"],
+            },
+          },
         },
+        required: [
+          "score",
+          "annotations",
+          "fallacies",
+          "biases",
+          "missed_points",
+          "alternatives",
+        ],
       },
-      missed_points: {
-        type: "array",
-        minItems: 0,
-        maxItems: 4,
-        items: {
-          type: "string",
-          description: "A single sentence describing a stronger argument the user did not make.",
+      claude_response: {
+        type: "object",
+        properties: {
+          text: { type: "string", description: "Claude's counter-argument. 2–4 sentences." },
+          score: {
+            type: "object",
+            properties: {
+              clarity: { type: "integer", minimum: 0, maximum: 10 },
+              logic: { type: "integer", minimum: 0, maximum: 10 },
+              evidence: { type: "integer", minimum: 0, maximum: 10 },
+              persuasiveness: { type: "integer", minimum: 0, maximum: 10 },
+              summary: { type: "string" },
+            },
+            required: ["clarity", "logic", "evidence", "persuasiveness", "summary"],
+          },
         },
+        required: ["text", "score"],
       },
     },
-    required: [
-      "response",
-      "score",
-      "annotations",
-      "alternatives",
-      "fallacies",
-      "biases",
-      "missed_points",
-    ],
+    required: ["user_analysis", "claude_response"],
   },
 };
 
+function formatTranscript(transcript: Turn[]): string {
+  if (transcript.length === 0) return "(No prior turns.)";
+  return transcript
+    .map((t) => {
+      const speaker = t.side === "user" ? "User" : "Claude";
+      return `Round ${t.round} — ${speaker}: "${t.text}"`;
+    })
+    .join("\n\n");
+}
+
 export async function POST(req: Request) {
   try {
-    const { input, stance } = (await req.json()) as {
-      input?: string;
-      stance?: "for" | "against";
+    const body = (await req.json()) as {
+      topic?: string;
+      userSide?: "for" | "against";
+      transcript?: Turn[];
+      newTurn?: string;
     };
 
-    if (!input || typeof input !== "string" || input.trim().length === 0) {
-      return Response.json({ error: "Input required." }, { status: 400 });
+    const { topic, userSide, transcript, newTurn } = body;
+
+    if (!topic || !userSide || !newTurn || typeof newTurn !== "string" || newTurn.trim().length === 0) {
+      return Response.json(
+        { error: "topic, userSide, and newTurn are all required." },
+        { status: 400 },
+      );
     }
 
-    const userPrompt =
-      stance === "for"
-        ? `Argue FOR this position (steelman it, then strengthen):\n\n"${input}"`
-        : `Argue AGAINST this position:\n\n"${input}"`;
+    const claudeSide = userSide === "for" ? "against" : "for";
+    const round = Math.floor((transcript?.length ?? 0) / 2) + 1;
+
+    const userPrompt = `Topic: "${topic}"
+
+User is arguing: ${userSide.toUpperCase()}
+You (Claude) are arguing: ${claudeSide.toUpperCase()}
+
+Transcript so far:
+${formatTranscript(transcript ?? [])}
+
+The user's new turn (Round ${round}):
+"${newTurn}"
+
+Now: coach the user's new turn AND write your counter as Round ${round} for the ${claudeSide} side.`;
 
     const message = await client.messages.create({
       model: "claude-sonnet-4-6",
@@ -162,13 +202,13 @@ export async function POST(req: Request) {
         },
       ],
       tools: [tool],
-      tool_choice: { type: "tool", name: "debate_analysis" },
+      tool_choice: { type: "tool", name: "turn_response" },
       messages: [{ role: "user", content: userPrompt }],
     });
 
     if (message.stop_reason === "refusal") {
       return Response.json(
-        { error: "The model declined to analyze this argument." },
+        { error: "The model declined to engage with this topic." },
         { status: 422 },
       );
     }
